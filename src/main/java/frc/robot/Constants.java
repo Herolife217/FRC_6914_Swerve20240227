@@ -35,7 +35,7 @@ public final class Constants {
         //these 2 should be the same
         public static final double kIntakePos = 0.06;
         public static final double kSubwooferPos = 0.06;
-    
+        //public static final double kHomePosition = 
         public static final double kFrontAmpPos = 0.15;
     
         // 3m position
@@ -125,7 +125,7 @@ public static final class DriverConstants {
 
 }
  public static final class IntakeConstants {
-            public static final int kIntakeID = 10;
+            public static final int kIntakeID = 16;
             public static final int kSensorDIOPort = 0;
             public static final double kIntakeSpeed = 3098;
             public static final double kFeedSpeed = 3083;
@@ -153,6 +153,23 @@ public static final class DriverConstants {
             public static final class OperatorConstants {
                 public static final double kManoeuvreSpeed = 0.4; 
             }
-    }
+            public static final class VisionConstants {
+              public static final double kObjCamXOffset = 0.3;
+              public static final double kTagCamXOffset = 0.3;
+              public static final double kTagCamYOffset = 0.3;
+            }
+          
+            public enum AprilTags {
+              SUBSTATION_CLOSE,
+              SUBSTATION_FAR,
+              SPEAKER_CENTRE,
+              SPEAKER_OFFSET,
+              AMP,
+              STAGE_LEFT,
+              STAGE_RIGHT,
+              STAGE_FAR
+            }
+          }
+    
 
   

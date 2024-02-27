@@ -5,6 +5,7 @@ import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.NeutralOut;
+import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.StrictFollower;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
@@ -15,6 +16,8 @@ import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CANcoderConfigurator;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.controls.DutyCycleOut;
@@ -32,6 +35,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.motorcontrol.Talon;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.ArmConstants;
 
@@ -45,7 +49,8 @@ public class Arm extends SubsystemBase{
     private final CANcoder encoder;
     private final CurrentLimitsConfigs m_currentLimits = new CurrentLimitsConfigs();
     private final DutyCycleOut m_output = new DutyCycleOut(0);
-    private final VelocityVoltage m_voltageVelocity = new VelocityVoltage(0, 0, true, 0, 0, false, false, false);
+    final VelocityVoltage m_velocity = new VelocityVoltage(0);
+    private final PositionVoltage m_voltagePosition = new PositionVoltage(0, 0, false, 0, 0, false, false, false);
     /*private final ArmFeedforward ff =
         new ArmFeedforward(
         ArmConstants.kSVolts, ArmConstants.kGVolts,
@@ -60,6 +65,10 @@ public class Arm extends SubsystemBase{
         // sets to factory default
         LeftTalonFXConfigurator.apply(new TalonFXConfiguration());
         RightTalonFXConfigurator.apply(new TalonFXConfiguration());
+        //sets brake mode
+        left.setNeutralMode(NeutralModeValue.Brake);
+        right.setNeutralMode(NeutralModeValue.Brake);
+
        // creates current limit for motors
         m_currentLimits.SupplyCurrentLimit = 40;
         TalonFXConfigs.CurrentLimits = m_currentLimits;
@@ -73,6 +82,7 @@ public class Arm extends SubsystemBase{
         //declares new cancoder
         encoder = new CANcoder(21);
         CANcoderConfiguration CANcoderConfigs = new CANcoderConfiguration();
+        CANcoderConfigs.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;
     /* User can change the configs if they want, or leave it empty for factory-default */
         encoder.getConfigurator().apply(CANcoderConfigs);
         /*  invert in software, 
@@ -84,6 +94,7 @@ public class Arm extends SubsystemBase{
         slot0Configs.kP = ArmConstants.kP;
         slot0Configs.kI = ArmConstants.kI;
         slot0Configs.kD = ArmConstants.kD;
+        m_velocity.Slot = 0;
         left.getConfigurator().apply(slot0Configs);
     }
 
@@ -104,12 +115,13 @@ public class Arm extends SubsystemBase{
    /*  public void hold(TrapezoidProfile.State setpoint) {
         double feedforward = ff.calculate(setpoint.position*2*Math.PI, setpoint.velocity);
         //figure out how to convert the below part to phoenix 6
-            left.setPosition(setpoint, 1);
+        left.setControl(m_velocity.withVelocity(setpoint*4096/600));
+
     } */
 
     public void runToPosition(double setpoint) {
         //these are included safety measures. not necessary, but useful
-       /*  if(getPos() >= ArmConstants.kUpperLimit) {
+         if(getPos() >= ArmConstants.kUpperLimit) {
             left.set(0);;
             System.out.println("¡TOO HIGH! ¡UPPER LIMIT!");
         }
@@ -117,17 +129,24 @@ public class Arm extends SubsystemBase{
             left.set(0);;
             System.out.println("¡TOO LOW! ¡LOWER LIMIT! " + getPos());
         }
-        else{*/
+        else{
         //figure out how to convert the below part to phoenix 6
-        //left.setControl(m_voltageVelocity.withVelocity(setpoint));
-        left.set(setpoint);
+        /*original code
+       //left.setReference(setpoint, ControlType.kPosition);
+        */
+        left.setControl(m_voltagePosition.withPosition(setpoint*4096/600));
+    }
     }
     
 
     public double getPos() {
         return encoder.getPosition().getValueAsDouble();
     }
-    
+    @Override
+    public void periodic() {
+      // This method will be called once per scheduler run
+      SmartDashboard.putNumber("ArmCANCoderPosition",getPos());
+    }
 }
 
 

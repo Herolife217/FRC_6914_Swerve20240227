@@ -8,6 +8,10 @@ import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
+import com.pathplanner.lib.commands.PathPlannerAuto;
+
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 
@@ -71,8 +75,8 @@ public class RobotContainer {
   public final Arm m_arm = new Arm(ArmConstants.kLeftID, ArmConstants.kRightID);
   public final Intake m_intake = new Intake(IntakeConstants.kIntakeID, IntakeConstants.kSensorDIOPort);
   public final Shooter m_shooter = new Shooter(ShooterConstants.kTopID, ShooterConstants.kBottomID);
-  public final Climber m_portClimber = new Climber(ClimberConstants.kPortID, ClimberConstants.kPortDIO);
-  public final Climber m_starboardClimber = new Climber(ClimberConstants.kStarboardID, ClimberConstants.kStarboardDIO);
+  //public final Climber m_portClimber = new Climber(ClimberConstants.kPortID, ClimberConstants.kPortDIO);
+  //public final Climber m_starboardClimber = new Climber(ClimberConstants.kStarboardID, ClimberConstants.kStarboardDIO);
 
   /* Controllers */
   private final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain; // My drivetrain
@@ -88,54 +92,9 @@ public class RobotContainer {
   //private final JoystickButton robotCentric = new JoystickButton(driverXboxController, XboxController.Button.kA.value);
 
   // Command Groups
-  ParallelCommandGroup feedAndShootSubwoofer = new ParallelCommandGroup(
-    new ShootNote(m_shooter, ShooterConstants.kSubwooferSpeed),
-    new Feed(m_intake)
-  );
-  
-  ParallelCommandGroup feedAndShootPodium = new ParallelCommandGroup(
-    new ShootNote(m_shooter, ShooterConstants.k3mSpeed),
-    new Feed(m_intake)
-  );
-  
-  SequentialCommandGroup shootSubwoofer = new SequentialCommandGroup(
-    new RunArmClosedLoop(m_arm, ArmConstants.kSubwooferPos),
-    new AccelerateShooter(m_shooter, ShooterConstants.kSubwooferSpeed),
-    feedAndShootSubwoofer
-  );
-  
-  SequentialCommandGroup shootPodium = new SequentialCommandGroup(
-    new RunArmClosedLoop(m_arm, ArmConstants.k3mPos),
-    new AccelerateShooter(m_shooter, ShooterConstants.k3mSpeed),
-    feedAndShootPodium
-  );
-  
-  ParallelCommandGroup intake = new ParallelCommandGroup(
-    new IntakeNoteAutomatic(m_intake),
-    new RunArmClosedLoop(m_arm, ArmConstants.kIntakePos)
-  );
 
-  ParallelCommandGroup homeClimbers = new ParallelCommandGroup(
-    new HomeClimber(m_portClimber),
-    new HomeClimber(m_starboardClimber)
-  );
+  private final SendableChooser<Command> autoChooser;  
 
-  ParallelCommandGroup forceFeed = new ParallelCommandGroup(
-    new RunIntakeOpenLoop(m_intake, IntakeConstants.kReverseSpeed),
-    new RunShooterAtVelocity(m_shooter, ShooterConstants.kAmpSpeed)
-  );
-  
-  ParallelCommandGroup forceReverse = new ParallelCommandGroup(
-    new RunIntakeOpenLoop(m_intake, -IntakeConstants.kReverseSpeed),
-    new RunShooterAtVelocity(m_shooter, -ShooterConstants.kAmpSpeed)
-  );
-
-  SequentialCommandGroup amp = new SequentialCommandGroup(
-    new RunArmClosedLoop(m_arm, ArmConstants.kBackAmpPos),
-    forceFeed
-  );
-
-    
   private double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
   private double MaxAngularRate = 1.5 * Math.PI; // 3/4 of a rotation per second max angular velocity
 
@@ -153,18 +112,18 @@ public class RobotContainer {
   configureButtonBindings();
 
     // Register Named Commands
-    NamedCommands.registerCommand("intake", intake);
-    NamedCommands.registerCommand("shootSubwoofer", shootSubwoofer);
-    NamedCommands.registerCommand("shootpodium", shootPodium);
+    // NamedCommands.registerCommand("intake", );
+    // NamedCommands.registerCommand("shootSubwoofer", );
+    // NamedCommands.registerCommand("shootpodium", );
     NamedCommands.registerCommand("armInside", new RunArmClosedLoop(m_arm, ArmConstants.kStowPos));
-    NamedCommands.registerCommand("homePort", new HomeClimber(m_portClimber));
-    NamedCommands.registerCommand("homeStarboard", new HomeClimber(m_starboardClimber));
+    // NamedCommands.registerCommand("homePort", new HomeClimber(m_portClimber));
+    // NamedCommands.registerCommand("homeStarboard", new HomeClimber(m_starboardClimber));
     NamedCommands.registerCommand("armDown", new RunArmClosedLoop(m_arm, ArmConstants.kIntakePos));
 
 
 
     // Another option that allows you to specify the default auto by its name
-    // autoChooser = AutoBuilder.buildAutoChooser("My Default Auto");
+    autoChooser = AutoBuilder.buildAutoChooser("My Default Auto");
     
 
     // Configure default commands
@@ -173,8 +132,8 @@ public class RobotContainer {
     m_intake.setDefaultCommand(new HoldIntake(m_intake));
     m_arm.setDefaultCommand(new HoldArm(m_arm));
     m_shooter.setDefaultCommand(new RunShooterAtVelocity(m_shooter, ShooterConstants.kIdleSpeed));
-    m_portClimber.setDefaultCommand(new HoldClimber(m_portClimber));
-    m_starboardClimber.setDefaultCommand(new HoldClimber(m_starboardClimber));
+    // m_portClimber.setDefaultCommand(new HoldClimber(m_portClimber));
+    // m_starboardClimber.setDefaultCommand(new HoldClimber(m_starboardClimber));
 
 
   }
@@ -225,21 +184,21 @@ public class RobotContainer {
     
     operatorXboxController.start().whileTrue(new Warning("¡OVERRIDE!"));
     operatorXboxController.rightBumper().whileTrue(new RunArmClosedLoop(m_arm, ArmConstants.kManualSpeed));
-    operatorXboxController.rightTrigger().whileTrue(forceReverse);
+    //operatorXboxController.rightTrigger().whileTrue(forceReverse);
     operatorXboxController.leftBumper().whileTrue(new RunArmClosedLoop(m_arm, -ArmConstants.kManualSpeed));
     operatorXboxController.leftTrigger().whileTrue(new IntakeNoteAutomatic(m_intake));
 
     operatorXboxController.a().whileTrue(new RunArmClosedLoop(m_arm, ArmConstants.kBackAmpPos));
     operatorXboxController.x().whileTrue(new RunArmClosedLoop(m_arm, ArmConstants.kSubwooferPos));
-    operatorXboxController.y().whileTrue(shootSubwoofer);
+    //operatorXboxController.y().whileTrue(shootSubwoofer);
     operatorXboxController.b().whileTrue( new RunShooterAtVelocity(m_shooter, ShooterConstants.kSubwooferSpeed));
     
-    operatorXboxController.back().whileTrue(homeClimbers);
-    operatorXboxController.povUp().whileTrue(new RunClimberManual(m_starboardClimber, ClimberConstants.kManualSpeed));
-    operatorXboxController.povDown().whileTrue(new RunClimberManual(m_portClimber, -ClimberConstants.kManualSpeed));
+    //operatorXboxController.back().whileTrue(homeClimbers);
+    // operatorXboxController.povUp().whileTrue(new RunClimberManual(m_starboardClimber, ClimberConstants.kManualSpeed));
+    // operatorXboxController.povDown().whileTrue(new RunClimberManual(m_portClimber, -ClimberConstants.kManualSpeed));
   }
     
   public Command getAutonomousCommand() {
-    return Commands.print("No autonomous command configured");
+    return autoChooser.getSelected();
   }
 }

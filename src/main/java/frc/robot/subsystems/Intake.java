@@ -7,6 +7,7 @@ import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.IntakeConstants;
 
@@ -65,6 +66,9 @@ public class Intake extends SubsystemBase{
     public boolean isNote() {
         return !optical.get();
     }
-
-    
+    @Override
+    public void periodic() {
+      // This method will be called once per scheduler run
+      SmartDashboard.putBoolean("SensorDetects",isNote());
+    }
 }
